@@ -15,14 +15,14 @@ export async function create(req, res, next) {
     if (!['student', 'instructor', 'admin'].includes(role)) {
       throw new HttpError(400, 'role must be student, instructor, or admin');
     }
-    const user = await usersService.create({
+    const instructor = await instructorsService.create({
       first_name,
       last_name,
       email,
       password_hash,
       role,
     });
-    res.status(201).json(user);
+    res.status(201).json(instructor);
   } catch (err) {
     next(err);
   }
@@ -30,9 +30,9 @@ export async function create(req, res, next) {
 
 export async function update(req, res, next) {
   try {
-    const user = await usersService.update(req.params.id, req.body ?? {});
-    if (!user) throw new HttpError(404, 'User not found');
-    res.json(user);
+    const instructor = await instructorsService.update(req.params.id, req.body ?? {});
+    if (!instructor) throw new HttpError(404, 'instructor not found');
+    res.json(instructor);
   } catch (err) {
     next(err);
   }
@@ -40,8 +40,8 @@ export async function update(req, res, next) {
 
 export async function remove(req, res, next) {
   try {
-    const deleted = await usersService.remove(req.params.id);
-    if (!deleted) throw new HttpError(404, 'User not found');
+    const deleted = await instructorsService.remove(req.params.id);
+    if (!deleted) throw new HttpError(404, 'instructor not found');
     res.status(204).end();
   } catch (err) {
     next(err);
