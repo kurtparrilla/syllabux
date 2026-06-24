@@ -1,21 +1,56 @@
 import pool from '../config/db.js';
 
-const PUBLIC_COLUMNS =
-  'instructor_id, first_name, last_name, email, role, created_at, updated_at';
-
 export async function get(id) {
   const [rows] = await pool.query(
-    `SELECT ${PUBLIC_COLUMNS} FROM instructors WHERE instructor_id = ?`,
+    `
+    SELECT
+      i.instructor_id,
+      i.bio,
+      i.created_at,
+
+      u.user_id,
+      u.first_name,
+      u.last_name,
+      u.email,
+      u.role,
+      u.updated_at
+
+    FROM instructors i
+    INNER JOIN users u
+      ON i.user_id = u.user_id
+
+    WHERE i.instructor_id = ?
+    `,
     [id]
   );
+
   return rows[0] ?? null;
 }
 
 export async function getByEmail(email) {
   const [rows] = await pool.query(
-    'SELECT * FROM instructors WHERE email = ?',
+    `
+    SELECT
+      i.instructor_id,
+      i.bio,
+      i.created_at,
+
+      u.user_id,
+      u.first_name,
+      u.last_name,
+      u.email,
+      u.role,
+      u.updated_at
+
+    FROM instructors i
+    INNER JOIN users u
+      ON i.user_id = u.user_id
+
+    WHERE u.email = ?
+    `,
     [email]
   );
+
   return rows[0] ?? null;
 }
 
@@ -24,49 +59,128 @@ export async function create({
   last_name,
   email,
   password_hash,
-  role,
+  bio
 }) {
-  const [result] = await pool.query(
-    `INSERT INTO Instructors (first_name, last_name, email, password_hash, role)
-     VALUES (?, ?, ?, ?, ?)`,
-    [first_name, last_name, email, password_hash, role]
+
+  const [userResult] = await pool.query(
+    `
+    INSERT INTO users
+    (
+      first_name,
+      last_name,
+      email,
+      password_hash,
+      role
+    )
+    VALUES (?, ?, ?, ?, 'instructor')
+    `,
+    [
+      first_name,
+      last_name,
+      email,
+      password_hash
+    ]
   );
-  return get(result.insertId);
+
+  const userId = userResult.insertId;
+
+  const [instructorResult] = await pool.query(
+    `
+    INSERT INTO instructors
+    (
+      user_id,
+      bio
+    )
+    VALUES (?, ?)
+    `,
+    [
+      userId,
+      bio ?? null
+    ]
+  );
+
+  return get(instructorResult.insertId);
 }
 
 export async function update(id, updates) {
-  const fields = [];
-  const values = [];
+
+  const instructor = await get(id);
+
+  if (!instructor) {
+    return null;
+  }
+
+  const userFields = [];
+  const userValues = [];
+
+  const allowedUserFields = [
+    'first_name',
+    'last_name',
+    'email'
+  ];
 
   for (const [key, value] of Object.entries(updates)) {
-    fields.push(`${key} = ?`);
-    values.push(value);
+
+    if (!allowedUserFields.includes(key)) {
+      continue;
+    }
+
+    userFields.push(`${key} = ?`);
+    userValues.push(value);
   }
 
-  if (fields.length === 0) {
-    return get(id);
+  if (userFields.length > 0) {
+
+    userValues.push(instructor.user_id);
+
+    await pool.query(
+      `
+      UPDATE users
+      SET ${userFields.join(', ')}
+      WHERE user_id = ?
+      `,
+      userValues
+    );
   }
 
-  values.push(id);
+  if (updates.bio !== undefined) {
 
-  const [result] = await pool.query(
-    `
-    UPDATE users
-    SET ${fields.join(", ")}
-    WHERE id = ?
-    `,
-    values
-  );
-
-  if (result.affectedRows === 0) return null;
+    await pool.query(
+      `
+      UPDATE instructors
+      SET bio = ?
+      WHERE instructor_id = ?
+      `,
+      [updates.bio, id]
+    );
+  }
 
   return get(id);
 }
 
 export async function remove(id) {
-  const [result] = await pool.query(
-    'DELETE FROM instructors WHERE instructor_id = ?',
+
+  const instructor = await get(id);
+
+  if (!instructor) {
+    return false;
+  }
+
+  await pool.query(
+    `
+    DELETE FROM instructors
+    WHERE instructor_id = ?
+    `,
     [id]
   );
-  return result.affectedRows > 0;
+
+  await pool.query(
+    `
+    DELETE FROM users
+    WHERE user_id = ?
+    `,
+    [instructor.user_id]
+  );
+
+  return true;
 }
