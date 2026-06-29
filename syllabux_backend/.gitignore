@@ -1,12 +1,4 @@
 node_modules/
-
 .env
-.env.*
-!.env.example
-
 .envrc
-.envrc.*
-!.envrc.example
-
 *.bak
-syllabux.sql
