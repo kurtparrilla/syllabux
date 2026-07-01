@@ -89,3 +89,42 @@ paths:
           description: Token validated
         401:
           description: Invalid token
+  /api/instructor-applications:
+    post:
+      summary: Application submission
+      tags: [Instructor]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                [
+                  about_self,
+                  linkedin_url,
+                  years_of_experience,
+                  expertise_summary,
+                  resume_link,
+                ]
+              properties:
+                about_self:
+                  type: string
+                  example: "I'm a full-stack developer with a passion for teaching web technologies to beginners."
+                linkedin_url:
+                  type: string
+                  example: "https://www.linkedin.com/in/jane-doe-dev"
+                years_of_experience:
+                  type: integer
+                  example: 3
+                expertise_summary:
+                  type: string
+                  example: "Specializes in JavaScript, React, and Node.js, with prior experience mentoring bootcamp students."
+                resume_link:
+                  type: string
+                  example: "https://example.com/resumes/jane-doe-resume.pdf"
+      responses:
+        200:
+          description: Submitted
+        401:
+          description: Failed to submit
